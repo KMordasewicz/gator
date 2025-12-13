@@ -5,12 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/KMordasewicz/blog-aggregator/internal/config"
 	"github.com/KMordasewicz/blog-aggregator/internal/database"
 	"github.com/KMordasewicz/blog-aggregator/internal/feed"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 type state struct {
@@ -120,25 +122,50 @@ func handleUsers(s *state, cmd command) error {
 	return nil
 }
 
-func scrapeFeeds(s *state) error {
+func scrapeFeeds(s *state) {
 	ctx := context.Background()
 	next_feed, err := s.db.GetNextFeedToFetch(ctx)
 	if err != nil {
-		return err
+		log.Printf("Couldn't get next feed: %v\n", err)
 	}
 	_, err = s.db.MarkFeedFetched(ctx, next_feed.ID)
 	if err != nil {
-		return err
+		log.Printf("Couldn't mark feed as fetched: %v\n", err)
 	}
 	feeds, err := feed.FetchFeed(ctx, next_feed.Url)
 	if err != nil {
-		return err
+		log.Printf("Couldn't fetch feeds: %v\n", err)
 	}
 	feeds.Clear()
 	for _, feed := range feeds.Channel.Item {
-		fmt.Printf("%s\n", feed.Title)
+		publishDate, err := time.Parse(time.RFC1123Z, feed.PubDate)
+		if err != nil {
+			log.Printf("Couldn't extract publish date: %v\n", err)
+			continue
+		}
+		post, err := s.db.CreatePost(ctx, database.CreatePostParams{
+			ID:          uuid.New(),
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+			Title:       feed.Title,
+			Url:         feed.Link,
+			Description: feed.Description,
+			PublishedAt: publishDate,
+			FeedID:      next_feed.ID,
+		})
+		if err != nil {
+			if pqErr, ok := err.(*pq.Error); ok {
+				if pqErr.Code == "23505" {
+					continue
+				} else {
+					log.Fatal(pqErr)
+				}
+			} else {
+				log.Fatalf("Couldn't add the post to db: %v\n", err)
+			}
+		}
+		fmt.Printf("Successfully saved a post: %v\n", post)
 	}
-	return nil
 }
 
 func hanldeAgg(s *state, cmd command) error {
@@ -152,10 +179,7 @@ func hanldeAgg(s *state, cmd command) error {
 	fmt.Printf("Collecting feeds every %v", timeBetweenTicks)
 	ticker := time.NewTicker(timeBetweenTicks)
 	for ; ; <-ticker.C {
-		err = scrapeFeeds(s)
-		if err != nil {
-			return err
-		}
+		scrapeFeeds(s)
 	}
 	return nil
 }
@@ -257,5 +281,27 @@ func handleUnfollow(s *state, cmd command, user database.User) error {
 		return err
 	}
 	fmt.Printf("Followed feed successfully deleted: %v\n", deletedFeedFollow)
+	return nil
+}
+
+func handleBrowse(s *state, cmd command, user database.User) error {
+	var limit int32 = 2
+	if len(cmd.args) > 0 {
+		newLimit, err := strconv.Atoi(cmd.args[0])
+		if err != nil {
+			return err
+		}
+		limit = int32(newLimit)
+	}
+	posts, err := s.db.GetPostsForUser(context.Background(), database.GetPostsForUserParams{
+		Name:  user.Name,
+		Limit: limit,
+	})
+	if err != nil {
+		return err
+	}
+	for _, post := range posts {
+		fmt.Printf("%v\n", post)
+	}
 	return nil
 }

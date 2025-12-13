@@ -6,7 +6,9 @@ CREATE TABLE feeds (
     name TEXT NOT NULL,
     url TEXT NOT NULL UNIQUE,
     user_id UUID REFERENCES users ON DELETE CASCADE NOT NULL
-);
+)
+;
 
 -- +goose Down
-DROP TABLE feeds;
+DROP TABLE feeds
+;
