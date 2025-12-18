@@ -6,7 +6,19 @@ Project for [boot.dev](https://www.boot.dev) bootcamp. Gator is a simple CLI too
  - PostgreSQL version 15 or above.
 
 # Installation
-Run `go install <link>`.
+Run `go install ...`.
+
+## Config
+
+Create a `.gatorconfig.json` file in your home directory with the following structure:
+
+```json
+{
+  "db_url": "postgres://username:@localhost:5432/database?sslmode=disable"
+}
+```
+
+Replace the values with your database connection string.
 
 # Usage
 
