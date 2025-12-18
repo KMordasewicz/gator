@@ -6,7 +6,7 @@ Project for [boot.dev](https://www.boot.dev) bootcamp. Gator is a simple CLI too
  - PostgreSQL version 15 or above.
 
 # Installation
-Run `go install ...`.
+Run `go install https://github.com/KMordasewicz/gator`.
 
 ## Config
 
