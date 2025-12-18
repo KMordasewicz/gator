@@ -1,4 +1,4 @@
-module github.com/KMordasewicz/blog-aggregator
+module github.com/KMordasewicz/gator
 
 go 1.25.1
 

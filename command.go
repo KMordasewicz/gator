@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/KMordasewicz/blog-aggregator/internal/config"
-	"github.com/KMordasewicz/blog-aggregator/internal/database"
-	"github.com/KMordasewicz/blog-aggregator/internal/feed"
+	"github.com/KMordasewicz/gator/internal/config"
+	"github.com/KMordasewicz/gator/internal/database"
+	"github.com/KMordasewicz/gator/internal/feed"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
